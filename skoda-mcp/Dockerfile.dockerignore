@@ -1,0 +1,17 @@
+# This Dockerfile is built from the repository root. Keep the context limited
+# to the two source modules and prevent local configuration from ever crossing
+# the build boundary.
+**
+!skoda-api-client/
+!skoda-api-client/pom.xml
+!skoda-api-client/skoda-api-server.yaml
+!skoda-api-client/src/
+!skoda-api-client/src/**
+!skoda-mcp/
+!skoda-mcp/pom.xml
+!skoda-mcp/src/
+!skoda-mcp/src/**
+
+# Explicitly keep credentials out even if the parent directory is allowed above.
+skoda-mcp/.env
+skoda-mcp/.env.local
