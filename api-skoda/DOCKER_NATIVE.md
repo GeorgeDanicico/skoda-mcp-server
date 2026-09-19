@@ -39,7 +39,7 @@ The `/ping` endpoint does not call MySkoda and is a safe container smoke test:
 
 ```bash
 curl --include http://127.0.0.1:8080/ping
-curl --fail --silent http://127.0.0.1:8888/actuator/health
+curl --fail --silent http://127.0.0.1:8888/health
 ```
 
 For upstream calls, provide a valid MySkoda bearer token and VIN. The

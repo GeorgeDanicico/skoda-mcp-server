@@ -299,7 +299,7 @@ paths:
         '500':
           $ref: '#/components/responses/ApiError'
 
-  /actuator/health:
+  /health:
     get:
       servers:
         - url: http://localhost:8888
@@ -323,7 +323,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
 
-  /actuator/health/liveness:
+  /health/liveness:
     get:
       servers:
         - url: http://localhost:8888
@@ -347,7 +347,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
 
-  /actuator/health/readiness:
+  /health/readiness:
     get:
       servers:
         - url: http://localhost:8888
@@ -371,7 +371,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
 
-  /actuator/prometheus:
+  /prometheus:
     get:
       servers:
         - url: http://localhost:8888
