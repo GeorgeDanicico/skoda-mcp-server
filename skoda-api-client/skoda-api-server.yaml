@@ -1,0 +1,655 @@
+openapi: 3.0.3
+info:
+  title: Skoda API Server
+  version: 2.0.0
+servers:
+  - url: https://api-skoda.nicholasmeyers.be
+tags:
+  - name: location
+    description: location
+  - name: status
+    description: status
+  - name: vehicle
+    description: vehicle
+  - name: range
+    description: range
+  - name: air-conditioning
+    description: air conditioning
+  - name: charging
+    description: charging
+  - name: vehicle-access
+    description: vehicle access commands
+paths:
+  /location/{vin}:
+    get:
+      tags:
+        - location
+      operationId: getLocation
+      summary: Get location
+      parameters:
+        - name: vin
+          in: path
+          description: vehicle vin
+          required: true
+          schema:
+            type: string
+            example: QMGAG8BEQSY003476
+      responses:
+        200:
+          description: Request successfully processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationWebResponseResource'
+        500:
+          description: API Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetailResponseResource'
+  /status/{vin}:
+    get:
+      tags:
+        - status
+      operationId: getStatus
+      summary: Get status
+      parameters:
+        - name: vin
+          in: path
+          description: vehicle vin
+          required: true
+          schema:
+            type: string
+            example: QMGAG8BEQSY003476
+      responses:
+        200:
+          description: Request successfully processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusWebResponseResource'
+        500:
+          description: API Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetailResponseResource'
+  /vehicle:
+    get:
+      tags:
+        - vehicle
+      operationId: findAllVehicles
+      summary: Find all vehicles
+      responses:
+        200:
+          description: Request successfully processed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VehicleWebResponseResource'
+        500:
+          description: API Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetailResponseResource'
+  /range/{vin}:
+    get:
+      tags:
+        - range
+      operationId: getRange
+      summary: Get range
+      parameters:
+        - name: vin
+          in: path
+          description: vehicle vin
+          required: true
+          schema:
+            type: string
+            example: QMGAG8BEQSY003476
+      responses:
+        200:
+          description: Request successfully processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RangeWebResponseResource'
+        500:
+          description: API Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetailResponseResource'
+  /air-conditioning/{vin}:
+    get:
+      tags:
+        - air-conditioning
+      operationId: getAirConditioning
+      summary: Get air conditioning
+      parameters:
+        - name: vin
+          in: path
+          description: vehicle vin
+          required: true
+          schema:
+            type: string
+            example: QMGAG8BEQSY003476
+      responses:
+        200:
+          description: Request successfully processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AirConditioningWebResponseResource'
+        500:
+          description: API Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetailResponseResource'
+  /air-conditioning/{vin}/start:
+    post:
+      tags:
+        - air-conditioning
+      operationId: startAirConditioning
+      summary: Start air conditioning
+      parameters:
+        - name: vin
+          in: path
+          description: vehicle vin
+          required: true
+          schema:
+            type: string
+            example: QMGAG8BEQSY003476
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AirConditioningWebRequestResource'
+      responses:
+        202:
+          description: Request successfully processed
+        500:
+          description: API Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetailResponseResource'
+  /air-conditioning/{vin}/stop:
+    post:
+      tags:
+        - air-conditioning
+      operationId: stopAirConditioning
+      summary: Stop air conditioning
+      parameters:
+        - name: vin
+          in: path
+          description: vehicle vin
+          required: true
+          schema:
+            type: string
+            example: QMGAG8BEQSY003476
+      responses:
+        202:
+          description: Request successfully processed
+        500:
+          description: API Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetailResponseResource'
+  /charging/{vin}:
+    get:
+      tags:
+        - charging
+      operationId: getChargingStatus
+      summary: Get charging status
+      parameters:
+        - name: vin
+          in: path
+          description: vehicle vin
+          required: true
+          schema:
+            type: string
+            example: QMGAG8BEQSY003476
+      responses:
+        200:
+          description: Request successfully processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChargingStatusWebResponseResource'
+        500:
+          description: Api Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetailResponseResource'
+  /charging/{vin}/session:
+    get:
+      tags:
+        - charging
+      operationId: getChargingSession
+      summary: Get charging sessions
+      parameters:
+        - name: vin
+          in: path
+          description: vehicle vin
+          required: true
+          schema:
+            type: string
+            example: QMGAG8BEQSY003476
+      responses:
+        200:
+          description: Request successfully processed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChargingSessionWebResponseResource'
+        500:
+          description: Api Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetailResponseResource'
+  /charging/{vin}/start:
+    post:
+      tags:
+        - charging
+      operationId: startCharging
+      summary: start charging
+      parameters:
+        - name: vin
+          in: path
+          description: vehicle vin
+          required: true
+          schema:
+            type: string
+            example: QMGAG8BEQSY003476
+      responses:
+        202:
+          description: Request successfully processed
+        500:
+          description: Api Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetailResponseResource'
+  /charging/{vin}/stop:
+    post:
+      tags:
+        - charging
+      operationId: stopCharging
+      summary: stop charging
+      parameters:
+        - name: vin
+          in: path
+          description: vehicle vin
+          required: true
+          schema:
+            type: string
+            example: QMGAG8BEQSY003476
+      responses:
+        202:
+          description: Request successfully processed
+        500:
+          description: Api Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetailResponseResource'
+  /vehicle-access/{vin}/flash:
+    post:
+      tags:
+        - vehicle-access
+      operationId: flash
+      summary: Flash the vehicle lights
+      parameters:
+        - name: vin
+          in: path
+          description: vehicle vin
+          required: true
+          schema:
+            type: string
+            example: QMGAG8BEQSY003476
+      responses:
+        202:
+          description: Request accepted
+        500:
+          description: API Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetailResponseResource'
+  /vehicle-access/{vin}/honk-and-flash:
+    post:
+      tags:
+        - vehicle-access
+      operationId: honkAndFlash
+      summary: Honk the vehicle horn and flash its lights
+      parameters:
+        - name: vin
+          in: path
+          description: vehicle vin
+          required: true
+          schema:
+            type: string
+            example: QMGAG8BEQSY003476
+      responses:
+        202:
+          description: Request accepted
+        500:
+          description: API Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetailResponseResource'
+  /vehicle-access/{vin}/lock:
+    post:
+      tags:
+        - vehicle-access
+      operationId: lock
+      summary: Lock the vehicle
+      parameters:
+        - name: vin
+          in: path
+          description: vehicle vin
+          required: true
+          schema:
+            type: string
+            example: QMGAG8BEQSY003476
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleAccessSecurityWebRequestResource'
+      responses:
+        202:
+          description: Request accepted
+        500:
+          description: API Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetailResponseResource'
+  /vehicle-access/{vin}/unlock:
+    post:
+      tags:
+        - vehicle-access
+      operationId: unlock
+      summary: Unlock the vehicle
+      parameters:
+        - name: vin
+          in: path
+          description: vehicle vin
+          required: true
+          schema:
+            type: string
+            example: QMGAG8BEQSY003476
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleAccessSecurityWebRequestResource'
+      responses:
+        202:
+          description: Request accepted
+        500:
+          description: API Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetailResponseResource'
+components:
+  schemas:
+    LocationWebResponseResource:
+      required:
+        - latitude
+        - longitude
+        - address
+      type: object
+      properties:
+        latitude:
+          type: number
+          format: double
+          description: latitude
+          example: 17.292954
+        longitude:
+          type: number
+          format: double
+          description: longitude
+          example: 2.87205
+        address:
+          type: string
+          example: Rue Red 16, 1000 Brussels, Belgium
+    StatusWebResponseResource:
+      required:
+        - doorsLocked
+        - locked
+        - doors
+        - windows
+        - lights
+        - reliableLockStatus
+        - sunroof
+        - trunk
+        - bonnet
+        - carCapturedTimestamp
+      type: object
+      properties:
+        doorsLocked:
+          type: string
+          nullable: true
+        locked:
+          type: string
+          nullable: true
+        doors:
+          type: string
+          nullable: true
+        windows:
+          type: string
+          nullable: true
+        lights:
+          type: string
+          nullable: true
+        reliableLockStatus:
+          type: string
+          nullable: true
+        sunroof:
+          type: string
+          nullable: true
+        trunk:
+          type: string
+          nullable: true
+        bonnet:
+          type: string
+          nullable: true
+        carCapturedTimestamp:
+          type: string
+          nullable: true
+    VehicleWebResponseResource:
+      required:
+        - vin
+        - name
+        - licensePlate
+        - state
+        - devicePlatform
+        - systemModelId
+        - title
+      type: object
+      properties:
+        vin:
+          type: string
+          description: vin of the vehicle
+          example: QMGAG8BEQSY003476
+        name:
+          type: string
+          nullable: true
+          description: name of the vehicle
+          example: Skoda octavia
+        licensePlate:
+          type: string
+          nullable: true
+          description: licence plate of the vehicle
+          example: 2ABC123
+        state:
+          type: string
+          nullable: true
+        devicePlatform:
+          type: string
+          nullable: true
+        systemModelId:
+          type: string
+          nullable: true
+        title:
+          type: string
+          nullable: true
+    RangeWebResponseResource:
+      required:
+        - carType
+        - totalRangeInKm
+        - engineType
+        - currentSoCInPercent
+        - remainingRangeInKm
+        - carCapturedTimestamp
+      properties:
+        carType:
+          type: string
+        totalRangeInKm:
+          type: integer
+          format: int32
+        engineType:
+          type: string
+        currentSoCInPercent:
+          type: integer
+          format: int32
+        remainingRangeInKm:
+          type: integer
+          format: int32
+        carCapturedTimestamp:
+          type: string
+    AirConditioningWebResponseResource:
+      required:
+        - state
+        - temperature
+        - temperatureUnit
+        - carCapturedTimestamp
+      properties:
+        state:
+          type: string
+        temperature:
+          type: number
+          format: double
+        temperatureUnit:
+          type: string
+        carCapturedTimestamp:
+          type: string
+    AirConditioningWebRequestResource:
+      required:
+        - heaterSource
+        - temperature
+        - temperatureUnit
+      properties:
+        heaterSource:
+          type: string
+          description: heater source
+          example: ELECTRIC
+        temperature:
+          type: number
+          format: double
+          description: target temperature in degree Celsius
+          example: 21.5
+        temperatureUnit:
+          type: string
+          description: target temperature unit
+          example: CELSIUS
+    ChargingStatusWebResponseResource:
+      required:
+        - chargingRateInKilometersPerHour
+        - chargePowerInKw
+        - remainingTimeToFullyChargedInMinutes
+        - state
+        - chargeType
+        - remainingCruisingRangeInMeters
+        - stateOfChargeInPercent
+        - carCapturedTimestamp
+      properties:
+        chargingRateInKilometersPerHour:
+          type: number
+          format: double
+        chargePowerInKw:
+          type: number
+          format: double
+        remainingTimeToFullyChargedInMinutes:
+          type: integer
+          format: int32
+        state:
+          type: string
+        chargeType:
+          type: string
+        remainingCruisingRangeInMeters:
+          type: integer
+          format: int32
+        stateOfChargeInPercent:
+          type: integer
+          format: int32
+        carCapturedTimestamp:
+          type: string
+    ChargingSessionWebResponseResource:
+      required:
+        - startAt
+        - chargedInKWh
+        - durationInMinutes
+        - currentType
+      properties:
+        startAt:
+          type: string
+        chargedInKWh:
+          type: number
+          format: double
+        durationInMinutes:
+          type: integer
+          format: int32
+        currentType:
+          type: string
+    VehicleAccessSecurityWebRequestResource:
+      type: object
+      required:
+        - spin
+      properties:
+        spin:
+          type: string
+          minLength: 4
+          maxLength: 4
+          pattern: '^[0-9]{4}$'
+          description: Four-digit MySkoda security PIN
+          example: '1234'
+    ProblemDetailResponseResource:
+      required:
+        - title
+        - status
+        - detail
+        - instance
+      properties:
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type
+          example: Invalid vin
+        status:
+          type: integer
+          description: The HTTP status code generated by the origin server for this occurrence of the problem
+          example: 400
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence of the problem
+          example: Invalid vin, please check your vin
+        instance:
+          type: string
+          description: A URI reference that identifies the specific occurrence of the problem
+          example: /cooling
