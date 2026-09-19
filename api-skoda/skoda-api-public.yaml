@@ -1,0 +1,456 @@
+openapi: 3.0.3
+info:
+  title: Skoda API
+  description: HTTP endpoints exposed by the Skoda API application.
+  version: 2.0.0
+servers:
+  - url: http://localhost:8080
+    description: Application API
+security:
+  - BearerAuth: []
+tags:
+  - name: location
+    description: Vehicle location
+  - name: status
+    description: Vehicle status
+  - name: vehicle
+    description: Vehicle information
+  - name: range
+    description: Vehicle range
+  - name: air-conditioning
+    description: Air-conditioning commands
+  - name: charging
+    description: Charging information and commands
+  - name: vehicle-access
+    description: Vehicle access commands
+  - name: health
+    description: Application health and metrics
+paths:
+  /ping:
+    get:
+      security: []
+      tags:
+        - health
+      operationId: ping
+      summary: Check that the application is reachable
+      responses:
+        '204':
+          description: The application is reachable.
+
+  /location/{vin}:
+    get:
+      tags:
+        - location
+      operationId: getLocation
+      summary: Get the vehicle location
+      parameters:
+        - $ref: '#/components/parameters/Vin'
+      responses:
+        '200':
+          description: Vehicle location.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationWebResponseResource'
+        '500':
+          $ref: '#/components/responses/ApiError'
+
+  /status/{vin}:
+    get:
+      tags:
+        - status
+      operationId: getStatus
+      summary: Get the vehicle status
+      parameters:
+        - $ref: '#/components/parameters/Vin'
+      responses:
+        '200':
+          description: Vehicle status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusWebResponseResource'
+        '500':
+          $ref: '#/components/responses/ApiError'
+
+  /vehicle:
+    get:
+      tags:
+        - vehicle
+      operationId: findAllVehicles
+      summary: Find all vehicles
+      responses:
+        '200':
+          description: Vehicles associated with the account.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VehicleWebResponseResource'
+        '500':
+          $ref: '#/components/responses/ApiError'
+
+  /range/{vin}:
+    get:
+      tags:
+        - range
+      operationId: getRange
+      summary: Get the vehicle range
+      parameters:
+        - $ref: '#/components/parameters/Vin'
+      responses:
+        '200':
+          description: Vehicle range.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RangeWebResponseResource'
+        '500':
+          $ref: '#/components/responses/ApiError'
+
+  /air-conditioning/{vin}:
+    get:
+      tags:
+        - air-conditioning
+      operationId: getAirConditioning
+      summary: Get the air-conditioning status
+      parameters:
+        - $ref: '#/components/parameters/Vin'
+      responses:
+        '200':
+          description: Air-conditioning status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AirConditioningWebResponseResource'
+        '500':
+          $ref: '#/components/responses/ApiError'
+
+  /air-conditioning/{vin}/start:
+    post:
+      tags:
+        - air-conditioning
+      operationId: startAirConditioning
+      summary: Start the vehicle air conditioning
+      parameters:
+        - $ref: '#/components/parameters/Vin'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AirConditioningWebRequestResource'
+      responses:
+        '202':
+          description: The command was accepted.
+        '500':
+          $ref: '#/components/responses/ApiError'
+
+  /air-conditioning/{vin}/stop:
+    post:
+      tags:
+        - air-conditioning
+      operationId: stopAirConditioning
+      summary: Stop the vehicle air conditioning
+      parameters:
+        - $ref: '#/components/parameters/Vin'
+      responses:
+        '202':
+          description: The command was accepted.
+        '500':
+          $ref: '#/components/responses/ApiError'
+
+  /charging/{vin}:
+    get:
+      tags:
+        - charging
+      operationId: getChargingStatus
+      summary: Get the charging status
+      parameters:
+        - $ref: '#/components/parameters/Vin'
+      responses:
+        '200':
+          description: Charging status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChargingStatusWebResponseResource'
+        '500':
+          $ref: '#/components/responses/ApiError'
+
+  /charging/{vin}/session:
+    get:
+      tags:
+        - charging
+      operationId: getChargingSession
+      summary: Get charging sessions
+      parameters:
+        - $ref: '#/components/parameters/Vin'
+      responses:
+        '200':
+          description: Charging sessions.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChargingSessionWebResponseResource'
+        '500':
+          $ref: '#/components/responses/ApiError'
+
+  /charging/{vin}/start:
+    post:
+      tags:
+        - charging
+      operationId: startCharging
+      summary: Start charging
+      parameters:
+        - $ref: '#/components/parameters/Vin'
+      responses:
+        '202':
+          description: The command was accepted.
+        '500':
+          $ref: '#/components/responses/ApiError'
+
+  /charging/{vin}/stop:
+    post:
+      tags:
+        - charging
+      operationId: stopCharging
+      summary: Stop charging
+      parameters:
+        - $ref: '#/components/parameters/Vin'
+      responses:
+        '202':
+          description: The command was accepted.
+        '500':
+          $ref: '#/components/responses/ApiError'
+
+  /vehicle-access/{vin}/flash:
+    post:
+      tags:
+        - vehicle-access
+      operationId: flash
+      summary: Flash the vehicle lights
+      parameters:
+        - $ref: '#/components/parameters/Vin'
+      responses:
+        '202':
+          description: The command was accepted.
+        '500':
+          $ref: '#/components/responses/ApiError'
+
+  /vehicle-access/{vin}/honk-and-flash:
+    post:
+      tags:
+        - vehicle-access
+      operationId: honkAndFlash
+      summary: Honk the vehicle horn and flash its lights
+      parameters:
+        - $ref: '#/components/parameters/Vin'
+      responses:
+        '202':
+          description: The command was accepted.
+        '500':
+          $ref: '#/components/responses/ApiError'
+
+  /vehicle-access/{vin}/lock:
+    post:
+      tags:
+        - vehicle-access
+      operationId: lock
+      summary: Lock the vehicle
+      parameters:
+        - $ref: '#/components/parameters/Vin'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleAccessSecurityWebRequestResource'
+      responses:
+        '202':
+          description: The command was accepted.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ApiError'
+
+  /vehicle-access/{vin}/unlock:
+    post:
+      tags:
+        - vehicle-access
+      operationId: unlock
+      summary: Unlock the vehicle
+      parameters:
+        - $ref: '#/components/parameters/Vin'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleAccessSecurityWebRequestResource'
+      responses:
+        '202':
+          description: The command was accepted.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ApiError'
+
+  /actuator/health:
+    get:
+      servers:
+        - url: http://localhost:8888
+          description: Management server
+      security: []
+      tags:
+        - health
+      operationId: getHealth
+      summary: Get application health
+      responses:
+        '200':
+          description: Application health.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: One or more health indicators are unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /actuator/health/liveness:
+    get:
+      servers:
+        - url: http://localhost:8888
+          description: Management server
+      security: []
+      tags:
+        - health
+      operationId: getLiveness
+      summary: Get application liveness
+      responses:
+        '200':
+          description: Application liveness.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: The application is not live.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /actuator/health/readiness:
+    get:
+      servers:
+        - url: http://localhost:8888
+          description: Management server
+      security: []
+      tags:
+        - health
+      operationId: getReadiness
+      summary: Get application readiness
+      responses:
+        '200':
+          description: Application readiness.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: The application is not ready.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /actuator/prometheus:
+    get:
+      servers:
+        - url: http://localhost:8888
+          description: Management server
+      security: []
+      tags:
+        - health
+      operationId: getPrometheusMetrics
+      summary: Get Prometheus metrics
+      responses:
+        '200':
+          description: Prometheus text exposition format.
+          content:
+            text/plain:
+              schema:
+                type: string
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: MyŠkoda bearer access token forwarded to the upstream API.
+
+  parameters:
+    Vin:
+      name: vin
+      in: path
+      required: true
+      description: Vehicle identification number.
+      schema:
+        type: string
+        example: QMGAG8BEQSY003476
+
+  responses:
+    ApiError:
+      description: API error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetailResponseResource'
+    ValidationError:
+      description: The request body is invalid.
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: true
+
+  schemas:
+    LocationWebResponseResource:
+      $ref: './skoda-api-server.yaml#/components/schemas/LocationWebResponseResource'
+    StatusWebResponseResource:
+      $ref: './skoda-api-server.yaml#/components/schemas/StatusWebResponseResource'
+    VehicleWebResponseResource:
+      $ref: './skoda-api-server.yaml#/components/schemas/VehicleWebResponseResource'
+    RangeWebResponseResource:
+      $ref: './skoda-api-server.yaml#/components/schemas/RangeWebResponseResource'
+    AirConditioningWebResponseResource:
+      $ref: './skoda-api-server.yaml#/components/schemas/AirConditioningWebResponseResource'
+    AirConditioningWebRequestResource:
+      $ref: './skoda-api-server.yaml#/components/schemas/AirConditioningWebRequestResource'
+    ChargingStatusWebResponseResource:
+      $ref: './skoda-api-server.yaml#/components/schemas/ChargingStatusWebResponseResource'
+    ChargingSessionWebResponseResource:
+      $ref: './skoda-api-server.yaml#/components/schemas/ChargingSessionWebResponseResource'
+    VehicleAccessSecurityWebRequestResource:
+      $ref: './skoda-api-server.yaml#/components/schemas/VehicleAccessSecurityWebRequestResource'
+    ProblemDetailResponseResource:
+      $ref: './skoda-api-server.yaml#/components/schemas/ProblemDetailResponseResource'
+    HealthResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          description: Overall health status.
+          example: UP
+        components:
+          type: object
+          additionalProperties: true
