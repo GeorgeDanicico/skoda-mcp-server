@@ -1,0 +1,613 @@
+openapi: 3.0.3
+# Contract of THIS application. Single source of truth for:
+#   * the REST API (api profile) - generated Spring interfaces, implemented by the
+#     controllers in com.gd.skoda.api on top of VehicleApiFacade
+#   * the stdio MCP tools (mcp profile) - generated @McpTool methods
+#     (templates/mcp/mcpTools.mustache), also calling VehicleApiFacade
+# Operation summaries/descriptions become MCP tool descriptions and schema descriptions
+# become the tools' output schema, so they are written for an LLM reader: units, the
+# meaning of null, and the freshness fields are spelled out everywhere.
+#
+# Vendor extensions on operations (read by the MCP template):
+#   x-mcp-name       MCP tool name (snake_case)
+#   x-mcp-read-only  true for tools that do not change anything (all of them)
+#   x-mcp-exclude    true to keep an operation REST-only (no MCP tool); absent = false
+info:
+  title: Skoda MCP Server API
+  version: 1.0.0
+  description: |
+    Read-only access to ONE Škoda vehicle (the VIN configured on the server) through the
+    MyŠkoda Public API.
+
+    Data freshness: the server fetches all vehicle data with a single upstream request and
+    caches it (default 5 minutes) because the MyŠkoda Public API allows only 20 requests per
+    hour and vehicle. Every vehicle response therefore has a `freshness` object:
+    `fetchedAt` (when the server received the data from MyŠkoda), `stale` (true if a refresh
+    was due but not possible, e.g. rate limit or MyŠkoda outage, and older data is shown)
+    and `unavailable` (parts MyŠkoda did not deliver). The vehicle's own measurement time is
+    the `capturedAt` field inside the data.
+
+    Unknown values: every data field is `null` when the value is unknown or was not reported.
+    Enum fields use `UNKNOWN` when the vehicle reported a value this server does not
+    recognise (or literally reported UNKNOWN).
+
+    Errors are RFC 9457 problem details (`application/problem+json`).
+  license:
+    name: MIT
+servers:
+  - url: /
+tags:
+  - name: Vehicle
+    description: Vehicle data (location, range, lock/door/window state, odometer).
+  - name: System
+    description: State of this server's MyŠkoda API key and rate limit.
+paths:
+  /api/v1/vehicle:
+    get:
+      tags: [Vehicle]
+      operationId: getVehicleOverview
+      summary: Get everything known about the vehicle in one call.
+      description: |
+        Returns name, license plate, location, range/fuel, lock/door/window/light state and
+        odometer of the configured vehicle, plus freshness information. Use this when several
+        aspects are needed at once; it costs no more than any single view because all views
+        share one cached upstream fetch. `freshness.unavailable` lists every part MyŠkoda did
+        not deliver (including parts that simply do not exist on this vehicle, e.g. CHARGING
+        on a combustion car).
+      x-mcp-name: get_vehicle_overview
+      x-mcp-read-only: true
+      responses:
+        '200':
+          description: Vehicle overview with freshness information.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleOverviewResponse'
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+        '504': { $ref: '#/components/responses/GatewayTimeout' }
+
+  /api/v1/vehicle/location:
+    get:
+      tags: [Vehicle]
+      operationId: getVehicleLocation
+      summary: Get where the vehicle is parked, or whether it is moving.
+      description: |
+        Returns the last known parking position of the configured vehicle. `state` is PARKED
+        or IN_MOTION. Coordinates and address are only reported while the vehicle is PARKED;
+        while IN_MOTION they are null (the vehicle's live position is never available).
+        `freshness.unavailable` lists PARKING_POSITION problems, e.g. when location sharing
+        is disabled in the vehicle.
+      x-mcp-name: get_vehicle_location
+      x-mcp-read-only: true
+      responses:
+        '200':
+          description: Vehicle location with freshness information.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleLocationResponse'
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+        '504': { $ref: '#/components/responses/GatewayTimeout' }
+
+  /api/v1/vehicle/range:
+    get:
+      tags: [Vehicle]
+      operationId: getVehicleRange
+      summary: Get the remaining driving range and fuel / battery levels.
+      description: |
+        Returns the total remaining range in kilometres, the range and fuel level (percent)
+        or battery state of charge (percent) per engine, the AdBlue range (diesel only) and
+        the car type. All values are whole numbers. `freshness.unavailable` lists FUEL_STATUS
+        and CHARGING problems; entries meaning "not supported by this vehicle" are omitted
+        when range data was delivered.
+      x-mcp-name: get_vehicle_range
+      x-mcp-read-only: true
+      responses:
+        '200':
+          description: Range and energy levels with freshness information.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleRangeResponse'
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+        '504': { $ref: '#/components/responses/GatewayTimeout' }
+
+  /api/v1/vehicle/status:
+    get:
+      tags: [Vehicle]
+      operationId: getVehicleStatus
+      summary: Get lock, door, window and light state and the odometer.
+      description: |
+        Returns whether the vehicle is locked, whether any door, window, the trunk, the bonnet
+        or the sunroof is open, whether lights are on, and the odometer reading in kilometres.
+        `freshness.unavailable` lists VEHICLE_STATUS and ODOMETER problems.
+      x-mcp-name: get_vehicle_status
+      x-mcp-read-only: true
+      responses:
+        '200':
+          description: Vehicle status with freshness information.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleStatusResponse'
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalError' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+        '504': { $ref: '#/components/responses/GatewayTimeout' }
+
+  /api/v1/system/api-key:
+    get:
+      tags: [System]
+      operationId: getApiKeyStatus
+      summary: Get the MyŠkoda API key expiry and the remaining request quota.
+      description: |
+        Reports when this server's MyŠkoda API key expires and how many upstream requests
+        are left in the current rate-limit window (20 per hour and vehicle), as reported by
+        the most recent MyŠkoda response. Never calls MyŠkoda itself. All fields are null
+        until the server has made its first vehicle request since it started. Use it to
+        explain stale data or rate-limit errors, or to warn that the key must be renewed in
+        the MyŠkoda app.
+      x-mcp-name: get_api_key_status
+      x-mcp-read-only: true
+      responses:
+        '200':
+          description: API key and quota state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyInfo'
+        '500': { $ref: '#/components/responses/InternalError' }
+
+components:
+  headers:
+    Retry-After:
+      description: Seconds to wait before trying again.
+      schema:
+        type: integer
+        format: int64
+        minimum: 0
+
+  responses:
+    TooManyRequests:
+      description: |
+        The MyŠkoda rate limit (20 requests per hour and vehicle) is used up, or the vehicle
+        declined the request, and no cached data can be served. Retry after `Retry-After`
+        seconds when present.
+      headers:
+        Retry-After: { $ref: '#/components/headers/Retry-After' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    InternalError:
+      description: Unexpected error in this server.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    BadGateway:
+      description: |
+        MyŠkoda answered in an unexpected way, or does not know the configured vehicle
+        (check SKODA_VIN on the server).
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    ServiceUnavailable:
+      description: |
+        The server cannot get vehicle data right now: MyŠkoda is down (retry after
+        `Retry-After` seconds when present), or the server's MyŠkoda API key has expired, is
+        invalid or is not authorised for the vehicle (the operator must create a new key in
+        the MyŠkoda app; retrying will not help).
+      headers:
+        Retry-After: { $ref: '#/components/headers/Retry-After' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    GatewayTimeout:
+      description: MyŠkoda did not answer in time. Try again later.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+
+  schemas:
+    # ---------- errors ----------
+    Problem:
+      type: object
+      description: RFC 9457 problem details.
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: |
+            Identifies the problem type, e.g. urn:skoda-mcp-server:problem:api-key-expired or
+            urn:skoda-mcp-server:problem:rate-limit-exceeded.
+        title:
+          type: string
+          description: Short, human-readable summary of the problem type.
+        status:
+          type: integer
+          format: int32
+          description: HTTP status code of this response.
+        detail:
+          type: string
+          description: Human-readable explanation, including what to do about it.
+        instance:
+          type: string
+          format: uri-reference
+          description: The request path that caused the problem.
+        retryAfterSeconds:
+          type: integer
+          format: int64
+          description: Seconds to wait before retrying (same as the Retry-After header), if known.
+        upstreamStatus:
+          type: integer
+          format: int32
+          description: HTTP status returned by the MyŠkoda Public API, if it answered.
+
+    # ---------- freshness ----------
+    Freshness:
+      type: object
+      description: How current the data is and which parts are missing.
+      required: [fetchedAt, stale, unavailable]
+      properties:
+        fetchedAt:
+          type: string
+          format: date-time
+          description: |
+            When this server received the data from the MyŠkoda Public API (UTC, ISO 8601).
+            This is NOT when the vehicle measured it; see `capturedAt` in the data.
+        stale:
+          type: boolean
+          description: |
+            true if the cached data is older than the cache lifetime but could not be
+            refreshed (rate limit almost used up, MyŠkoda rate-limited the request, MyŠkoda
+            unavailable or timed out), so older data is shown. false means the data is as
+            fresh as the cache allows.
+        unavailable:
+          type: array
+          description: |
+            Parts of the data that MyŠkoda did not deliver; the corresponding fields are null.
+            Empty when everything relevant was delivered.
+          items:
+            $ref: '#/components/schemas/UnavailablePart'
+
+    UnavailablePart:
+      type: object
+      description: One part of the vehicle data MyŠkoda did not deliver, and why.
+      required: [part, reason]
+      properties:
+        part:
+          $ref: '#/components/schemas/DataPart'
+        reason:
+          $ref: '#/components/schemas/UnavailabilityReason'
+        type:
+          type: string
+          nullable: true
+          description: Raw MyŠkoda error type, e.g. PARKING_POSITION_UNAVAILABLE.
+        description:
+          type: string
+          nullable: true
+          description: MyŠkoda's explanation, if any.
+
+    DataPart:
+      type: string
+      description: |
+        Part of the vehicle data an unavailability refers to. UNKNOWN for error types this
+        server does not recognise (see the raw `type`).
+      enum: [RENDER, VEHICLE_STATUS, FUEL_STATUS, ODOMETER, PARKING_POSITION, AIR_CONDITIONING,
+             AUXILIARY_HEATING, ACTIVE_VENTILATION, CHARGING, CHARGING_PROFILES, OPERATIONS, UNKNOWN]
+
+    UnavailabilityReason:
+      type: string
+      description: |
+        Why a part is missing. UNSUPPORTED - the vehicle does not have this feature (e.g.
+        CHARGING on a combustion car); DISABLED - switched off in the vehicle or the MyŠkoda
+        app (e.g. location sharing); UNAVAILABLE - temporarily missing (e.g. no recent data from
+        the vehicle); UNKNOWN - not recognised.
+      enum: [UNSUPPORTED, DISABLED, UNAVAILABLE, UNKNOWN]
+
+    # ---------- responses ----------
+    VehicleOverviewResponse:
+      type: object
+      description: Vehicle overview plus freshness information.
+      required: [data, freshness]
+      properties:
+        data:
+          $ref: '#/components/schemas/VehicleOverview'
+        freshness:
+          $ref: '#/components/schemas/Freshness'
+
+    VehicleLocationResponse:
+      type: object
+      description: Vehicle location plus freshness information.
+      required: [data, freshness]
+      properties:
+        data:
+          $ref: '#/components/schemas/Location'
+        freshness:
+          $ref: '#/components/schemas/Freshness'
+
+    VehicleRangeResponse:
+      type: object
+      description: Range and energy levels plus freshness information.
+      required: [data, freshness]
+      properties:
+        data:
+          $ref: '#/components/schemas/Range'
+        freshness:
+          $ref: '#/components/schemas/Freshness'
+
+    VehicleStatusResponse:
+      type: object
+      description: Lock/door/window/light state and odometer plus freshness information.
+      required: [data, freshness]
+      properties:
+        data:
+          $ref: '#/components/schemas/Status'
+        freshness:
+          $ref: '#/components/schemas/Freshness'
+
+    # ---------- vehicle data ----------
+    VehicleOverview:
+      type: object
+      description: Everything known about the vehicle. Fields are null when unknown.
+      required: [location, range, status]
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: Vehicle name set by the owner in the MyŠkoda app (the model name if none was set).
+        licensePlate:
+          type: string
+          nullable: true
+          description: License plate.
+        location:
+          $ref: '#/components/schemas/Location'
+        range:
+          $ref: '#/components/schemas/Range'
+        status:
+          $ref: '#/components/schemas/Status'
+        capturedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: |
+            The most recent time the vehicle itself reported any of this data (UTC, ISO 8601).
+            null if the vehicle reported no timestamp.
+
+    Location:
+      type: object
+      description: |
+        Last known parking position. Fields are null when unknown. Coordinates and address are
+        only present while `state` is PARKED.
+      properties:
+        state:
+          $ref: '#/components/schemas/ParkingState'
+        latitude:
+          type: number
+          format: double
+          nullable: true
+          description: WGS84 latitude in decimal degrees (only while PARKED).
+        longitude:
+          type: number
+          format: double
+          nullable: true
+          description: WGS84 longitude in decimal degrees (only while PARKED).
+        formattedAddress:
+          type: string
+          nullable: true
+          description: Street address of the parking position, if MyŠkoda could resolve it (only while PARKED).
+        capturedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: |
+            When the vehicle reported the position (UTC, ISO 8601). Currently always null:
+            MyŠkoda does not report a timestamp for the parking position.
+
+    ParkingState:
+      type: string
+      nullable: true
+      description: |
+        PARKED - the vehicle is parked at the reported position; IN_MOTION - the vehicle is
+        being driven (no position available); UNKNOWN - not recognised. null if not reported.
+      enum: [PARKED, IN_MOTION, UNKNOWN]
+
+    Range:
+      type: object
+      description: |
+        Remaining driving range and energy levels. Fields are null when unknown. Distances are
+        whole kilometres, levels whole percent.
+      properties:
+        carType:
+          $ref: '#/components/schemas/CarType'
+        totalRangeKm:
+          type: integer
+          format: int32
+          nullable: true
+          description: Total remaining driving range in kilometres (all engines combined).
+        primaryEngine:
+          $ref: '#/components/schemas/EngineRange'
+        secondaryEngine:
+          $ref: '#/components/schemas/EngineRange'
+        adBlueRangeKm:
+          type: integer
+          format: int32
+          nullable: true
+          description: Distance in kilometres until the AdBlue tank is empty (diesel only).
+        batterySocPercent:
+          type: integer
+          format: int32
+          nullable: true
+          description: High-voltage battery state of charge in percent (plug-in hybrid / electric only).
+        capturedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the vehicle measured these values (UTC, ISO 8601).
+
+    CarType:
+      type: string
+      nullable: true
+      description: |
+        Drive type reported by MyŠkoda. null for battery-electric vehicles and when not
+        reported; UNKNOWN for values this server does not recognise.
+      enum: [HYBRID, GASOLINE, DIESEL, CNG, LPG, UNKNOWN]
+
+    EngineRange:
+      type: object
+      nullable: true
+      description: Range of one engine. null if the vehicle has no such engine or it was not reported.
+      properties:
+        engineType:
+          $ref: '#/components/schemas/EngineType'
+        fuelLevelPercent:
+          type: integer
+          format: int32
+          nullable: true
+          description: Fuel tank level in percent (combustion engines only).
+        socPercent:
+          type: integer
+          format: int32
+          nullable: true
+          description: Battery state of charge in percent (electric engines only).
+        remainingRangeKm:
+          type: integer
+          format: int32
+          nullable: true
+          description: Remaining range of this engine in kilometres.
+
+    EngineType:
+      type: string
+      nullable: true
+      description: Energy source of an engine. null if not reported, UNKNOWN if not recognised.
+      enum: [ELECTRIC, GASOLINE, DIESEL, CNG, LPG, UNKNOWN]
+
+    Status:
+      type: object
+      description: |
+        Lock, door, window and light state and the odometer. Fields are null when unknown.
+      properties:
+        locked:
+          $ref: '#/components/schemas/LockState'
+        doorsLocked:
+          $ref: '#/components/schemas/DoorsLockedState'
+        doors:
+          allOf: [ { $ref: '#/components/schemas/OpenState' } ]
+          description: Whether any door is open.
+        windows:
+          allOf: [ { $ref: '#/components/schemas/OpenState' } ]
+          description: Whether any side window is open (the sunroof is reported separately).
+        lights:
+          $ref: '#/components/schemas/LightsState'
+        reliableLockStatus:
+          $ref: '#/components/schemas/ReliableLockState'
+        trunk:
+          allOf: [ { $ref: '#/components/schemas/OpenState' } ]
+          description: Whether the trunk (boot) is open.
+        bonnet:
+          allOf: [ { $ref: '#/components/schemas/OpenState' } ]
+          description: Whether the bonnet (hood) is open.
+        sunroof:
+          allOf: [ { $ref: '#/components/schemas/OpenState' } ]
+          description: Whether the sunroof is open; UNSUPPORTED if the vehicle has none.
+        odometerKm:
+          type: integer
+          format: int64
+          nullable: true
+          description: Total distance driven (odometer) in kilometres.
+        capturedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: |
+            When the vehicle reported this status (UTC, ISO 8601); the odometer timestamp if no
+            status was delivered.
+
+    LockState:
+      type: string
+      nullable: true
+      description: |
+        Whether the vehicle is locked: YES - all doors and the trunk are closed and locked;
+        NO - not locked. null if not reported, UNKNOWN if not recognised.
+      enum: ['YES', 'NO', UNKNOWN]
+
+    DoorsLockedState:
+      type: string
+      nullable: true
+      description: |
+        Door lock state with more detail: YES - locked; NO - unlocked; OPENED - a door is open;
+        TRUNK_OPENED - the trunk is open. null if not reported, UNKNOWN if not recognised.
+      enum: ['YES', 'NO', OPENED, TRUNK_OPENED, UNKNOWN]
+
+    OpenState:
+      type: string
+      nullable: true
+      description: |
+        OPEN or CLOSED; UNSUPPORTED if the vehicle does not have this part. null if not
+        reported, UNKNOWN if not recognised.
+      enum: [OPEN, CLOSED, UNSUPPORTED, UNKNOWN]
+
+    LightsState:
+      type: string
+      nullable: true
+      description: Whether any light is ON or OFF. null if not reported, UNKNOWN if not recognised.
+      enum: ['ON', 'OFF', UNKNOWN]
+
+    ReliableLockState:
+      type: string
+      nullable: true
+      description: |
+        Lock state as reported by newer (MOD4) vehicles: LOCKED or UNLOCKED. null if not
+        reported (older vehicles), UNKNOWN if not recognised.
+      enum: [LOCKED, UNLOCKED, UNKNOWN]
+
+    # ---------- system ----------
+    ApiKeyInfo:
+      type: object
+      description: |
+        This server's MyŠkoda API key and rate-limit state as reported by the most recent
+        MyŠkoda response. All fields are null until the first vehicle request after the server
+        started.
+      properties:
+        keyExpiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the MyŠkoda API key expires (UTC, ISO 8601). A new key must be created in the MyŠkoda app before then.
+        daysUntilExpiry:
+          type: integer
+          format: int64
+          nullable: true
+          description: Whole days until the key expires (rounded down); negative once it has expired.
+        rateLimitLimit:
+          type: integer
+          format: int32
+          nullable: true
+          description: Upstream requests allowed per rate-limit window (MyŠkoda allows 20 per hour and vehicle).
+        rateLimitRemaining:
+          type: integer
+          format: int32
+          nullable: true
+          description: |
+            Upstream requests left in the window as of `lastUpstreamCallAt`. If
+            `rateLimitResetAt` is in the past the window has reset since and the full limit is
+            available again.
+        rateLimitResetAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the current rate-limit window resets (UTC, ISO 8601).
+        lastUpstreamCallAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When this server last received a response from MyŠkoda (UTC, ISO 8601).

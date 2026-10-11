@@ -1,0 +1,45 @@
+# stdio MCP server. STDOUT belongs exclusively to the MCP protocol:
+# no banner, and logback-spring.xml sends all console logging to STDERR.
+spring:
+  main:
+    web-application-type: none
+    banner-mode: off
+    # No spring.main.keep-alive: the MCP SDK's stdio transport reads stdin on a non-daemon thread,
+    # which keeps the process running while the client is connected. When the client closes stdin
+    # (the MCP way to stop a stdio server), that thread and the writer thread end, the JVM exits
+    # normally (code 0) and Spring closes the context in its shutdown hook. keep-alive=true would
+    # keep the process (and a `docker run -i --rm` container) alive forever. McpStdioServerIT
+    # covers both: alive while stdin is open, exit code 0 after stdin is closed.
+  ai:
+    mcp:
+      server:
+        enabled: true
+        name: skoda-mcp
+        version: "@project.version@"
+        type: SYNC
+        stdio: true
+        instructions: >-
+          Read-only access to one Škoda vehicle (the VIN configured on the server) through the
+          MyŠkoda Public API. MyŠkoda allows only 20 requests per hour, so the server caches vehicle
+          data for a few minutes and all vehicle tools share one fetch: check freshness.fetchedAt and
+          freshness.stale in results, and do not poll. Null fields mean unknown.
+        # Only tools are offered (generated from skoda-service-api.yaml, com.gd.skoda.mcp.generated).
+        capabilities:
+          tool: true
+          resource: false
+          prompt: false
+          completion: false
+        annotation-scanner:
+          enabled: true
+
+# No web server in this mode; keep springdoc switched off explicitly.
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+logging:
+  level:
+    root: WARN
+    com.gd.skoda: INFO

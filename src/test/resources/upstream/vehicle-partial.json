@@ -1,0 +1,43 @@
+{
+  "vehicle": {
+    "vin": "TMBJJ7NE8L0123456",
+    "name": "Family Octavia",
+    "licensePlate": "B 123 XYZ",
+    "status": {
+      "overall": {
+        "doorsLocked": "NO",
+        "locked": "NO",
+        "doors": "CLOSED",
+        "windows": "OPEN",
+        "lights": "OFF"
+      },
+      "detail": {
+        "sunroof": "UNSUPPORTED",
+        "trunk": "CLOSED",
+        "bonnet": "CLOSED"
+      },
+      "carCapturedTimestamp": "2026-10-11T07:58:12+02:00",
+      "someFutureField": "added by a newer API version"
+    },
+    "odometer": {
+      "mileageInKm": 48213
+    }
+  },
+  "errors": [
+    {
+      "type": "RENDER_UNAVAILABLE",
+      "description": "The vehicle render could not be retrieved."
+    },
+    {
+      "type": "PARKING_POSITION_UNAVAILABLE",
+      "description": "Parking position could not be retrieved from the vehicle."
+    },
+    {
+      "type": "FUEL_STATUS_DISABLED"
+    },
+    {
+      "type": "CHARGING_UNSUPPORTED",
+      "description": "Charging is not supported by the vehicle."
+    }
+  ]
+}
