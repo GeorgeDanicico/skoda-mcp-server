@@ -1,0 +1,28 @@
+# Build output
+target/
+
+# Local secrets (see .env.example)
+.env
+*.env
+!.env.example
+
+# Logs
+*.log
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+.apt_generated/
+bin/
+out/
+
+# OS
+.DS_Store
+Thumbs.db

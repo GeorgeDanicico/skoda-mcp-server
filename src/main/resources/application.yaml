@@ -1,0 +1,21 @@
+# Shared configuration for all run modes. Profile-specific settings live in
+# application-mcp.yaml (default) and application-api.yaml.
+spring:
+  application:
+    name: skoda-mcp-server
+  profiles:
+    default: mcp
+  config:
+    # Local secrets file (KEY=value, same names as the env vars); ignored by Git.
+    import: optional:file:.env[.properties]
+
+# Env var mapping. Empty values fall back to the defaults declared in
+# SkodaProperties / fail validation for required values.
+skoda:
+  vin: ${SKODA_VIN:}
+  public-api:
+    key: ${SKODA_API_KEY:}
+    base-url: ${SKODA_PUBLIC_API_URL:}
+    # timeout: 15s
+  cache:
+    ttl: ${SKODA_CACHE_TTL:}

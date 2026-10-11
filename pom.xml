@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.1.1</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.gd</groupId>
+    <artifactId>skoda-mcp-server</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <name>skoda-mcp-server</name>
+    <description>Read-only MyŠkoda Public API bridge exposed as a stdio MCP server (mcp profile) or REST API (api profile)</description>
+
+    <properties>
+        <java.version>25</java.version>
+        <spring-ai.version>2.0.1</spring-ai.version>
+        <openapi-generator.version>7.26.0</openapi-generator.version>
+        <!-- springdoc 3.x = Spring Boot 4 line -->
+        <springdoc.version>3.1.1</springdoc.version>
+
+        <!-- Native build (-Pnative): the run mode Spring AOT freezes into the executable and the
+             executable's name. Defaults = mcp; switch with the Maven profiles mcp / api below. -->
+        <skoda.native.run-mode>mcp</skoda.native.run-mode>
+        <skoda.native.image-name>skoda-mcp</skoda.native.image-name>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- MCP over stdio (active in the mcp profile only) -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-mcp-server</artifactId>
+        </dependency>
+
+        <!-- REST API (active in the api profile; mcp profile runs with web-application-type=none) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
+        </dependency>
+        <!-- Outbound HTTP: RestClient + HTTP interface clients for the MyŠkoda Public API -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-restclient</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <!-- Swagger UI for our static contract (api profile only; inert without a servlet web server) -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- MockRestServiceServer / @RestClientTest (Boot 4 test slice module) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-restclient-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- @WebMvcTest / MockMvc (Boot 4 test slice module) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-configuration-processor</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+
+            <!-- Exposes ${org.mockito:mockito-core:jar} for the Mockito agent below. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>dependency-paths</id>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Mockito's inline mock maker as a startup agent; JDK 21+ warns about (and will
+                         eventually refuse) dynamically attached agents. -->
+                    <argLine>-javaagent:${org.mockito:mockito-core:jar} -Xshare:off</argLine>
+                    <!-- Talk to forked test JVMs over TCP instead of stdin/stdout, which the
+                         MCP stdio transport reads/writes when the mcp profile context starts. -->
+                    <forkNode implementation="org.apache.maven.plugin.surefire.extensions.SurefireForkNodeFactory"/>
+                </configuration>
+            </plugin>
+
+            <!-- *IT tests run in `verify`, after `package` has built the executable jar
+                 (e.g. McpStdioServerIT starts it as a stdio MCP server). -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <argLine>-Xshare:off</argLine>
+                    <systemPropertyVariables>
+                        <skoda.it.jar>${project.build.directory}/${project.build.finalName}.jar</skoda.it.jar>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <version>${openapi-generator.version}</version>
+                <executions>
+                    <!-- Upstream MyŠkoda Public API client (@HttpExchange interface + models). -->
+                    <execution>
+                        <id>myskoda-public-api</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/src/main/openapi/myskoda-public-api.yaml</inputSpec>
+                            <generatorName>spring</generatorName>
+                            <library>spring-http-interface</library>
+                            <apiPackage>com.gd.skoda.upstream.publicapi.api</apiPackage>
+                            <modelPackage>com.gd.skoda.upstream.publicapi.model</modelPackage>
+                            <apisToGenerate>Vehicles</apisToGenerate>
+                            <generateApiTests>false</generateApiTests>
+                            <generateApiDocumentation>false</generateApiDocumentation>
+                            <generateModelTests>false</generateModelTests>
+                            <generateModelDocumentation>false</generateModelDocumentation>
+                            <generateSupportingFiles>false</generateSupportingFiles>
+                            <configOptions>
+                                <useSpringBoot4>true</useSpringBoot4>
+                                <useJakartaEe>true</useJakartaEe>
+                                <!-- no jackson-databind-nullable (Jackson 2 only) -->
+                                <openApiNullable>false</openApiNullable>
+                                <useTags>true</useTags>
+                                <!-- we validate nothing on responses; tolerate upstream additions -->
+                                <useBeanValidation>false</useBeanValidation>
+                                <dateLibrary>java8</dateLibrary>
+                                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                                <!-- 7.23-equivalent output; inclusion/null handling stays with Boot's JsonMapper -->
+                                <generateJsonIncludeAnnotations>false</generateJsonIncludeAnnotations>
+                                <generateJsonSetterNullsAnnotations>false</generateJsonSetterNullsAnnotations>
+                                <sourceFolder>src/main/java</sourceFolder>
+                            </configOptions>
+                        </configuration>
+                    </execution>
+                    <!-- Our own contract: REST interfaces + DTOs + MCP tools, all from one spec in one run.
+                         The MCP tools (com.gd.skoda.mcp.generated.*ApiMcpTools) come from the user-defined
+                         API template src/main/openapi/templates/mcp/mcpTools.mustache, registered in
+                         skoda-service-api-generator.yaml. templateDirectory holds only that template, so
+                         every built-in template still comes from the generator. -->
+                    <execution>
+                        <id>skoda-service-api</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/src/main/openapi/skoda-service-api.yaml</inputSpec>
+                            <configurationFile>${project.basedir}/src/main/openapi/skoda-service-api-generator.yaml</configurationFile>
+                            <templateDirectory>${project.basedir}/src/main/openapi/templates/mcp</templateDirectory>
+                            <generatorName>spring</generatorName>
+                            <apiPackage>com.gd.skoda.api.generated</apiPackage>
+                            <modelPackage>com.gd.skoda.api.generated.model</modelPackage>
+                            <!-- VehicleOverviewDto etc.: no clash with the com.gd.skoda.vehicle domain records -->
+                            <modelNameSuffix>Dto</modelNameSuffix>
+                            <!-- errors are Spring's ProblemDetail, not a generated class -->
+                            <schemaMappings>Problem=org.springframework.http.ProblemDetail</schemaMappings>
+                            <generateApiTests>false</generateApiTests>
+                            <generateApiDocumentation>false</generateApiDocumentation>
+                            <generateModelTests>false</generateModelTests>
+                            <generateModelDocumentation>false</generateModelDocumentation>
+                            <generateSupportingFiles>false</generateSupportingFiles>
+                            <configOptions>
+                                <!-- Interfaces only, implemented by thin @Profile("api") controllers in
+                                     com.gd.skoda.api. delegatePattern is NOT used: with interfaceOnly it
+                                     generates no XxxApiDelegate (only a _method indirection plus ApiUtil
+                                     example bodies), and without interfaceOnly it generates @Controller
+                                     classes that component scanning would also pick up in the mcp profile. -->
+                                <interfaceOnly>true</interfaceOnly>
+                                <skipDefaultInterface>true</skipDefaultInterface>
+                                <useSpringBoot4>true</useSpringBoot4>
+                                <useJakartaEe>true</useJakartaEe>
+                                <openApiNullable>false</openApiNullable>
+                                <useTags>true</useTags>
+                                <useBeanValidation>false</useBeanValidation>
+                                <documentationProvider>none</documentationProvider>
+                                <!-- @Schema(description, nullable, ...) on the DTOs: Spring AI derives the MCP
+                                     tools' output schemas from them, so they carry the contract's field
+                                     descriptions and allow null (the MCP server validates results against
+                                     the output schema, and null means "unknown" in our contract). -->
+                                <annotationLibrary>swagger2</annotationLibrary>
+                                <dateLibrary>java8</dateLibrary>
+                                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                                <generateJsonIncludeAnnotations>false</generateJsonIncludeAnnotations>
+                                <generateJsonSetterNullsAnnotations>false</generateJsonSetterNullsAnnotations>
+                                <sourceFolder>src/main/java</sourceFolder>
+                            </configOptions>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Serve our contract unchanged as /skoda-service-api.yaml (Swagger UI, api profile). -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-service-api-spec</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/static</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.basedir}/src/main/openapi</directory>
+                                    <includes>
+                                        <include>skoda-service-api.yaml</include>
+                                    </includes>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <!-- Native executables: see the native / mcp / api profiles below. -->
+            <plugin>
+                <groupId>org.graalvm.buildtools</groupId>
+                <artifactId>native-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <!-- Native executable (GraalVM 25): ./mvnw -Pnative,mcp -DskipTests package -> target/skoda-mcp
+                                              ./mvnw -Pnative,api -DskipTests package -> target/skoda-api
+             Extends the Boot parent's "native" profile (process-aot execution, reachability metadata).
+             Spring AOT evaluates @Profile/@Conditional* at build time, so process-aot runs with the target
+             run mode; the generated code re-activates that profile at run time, so the executable needs no
+             spring.profiles.active setting. The plain JVM build is unaffected: the jar still runs both modes.
+             PowerShell: quote the profile list, e.g. '-Pnative,api'. -->
+        <profile>
+            <id>native</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>process-aot</id>
+                                <configuration>
+                                    <profiles>
+                                        <profile>${skoda.native.run-mode}</profile>
+                                    </profiles>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <configuration>
+                            <imageName>${skoda.native.image-name}</imageName>
+                            <buildArgs>
+                                <!-- Portable machine code: the default (x86-64-v3 / armv8.1-a) would not start
+                                     on older CPUs, e.g. on some VPS hosts. -->
+                                <buildArg>-march=compatibility</buildArg>
+                            </buildArgs>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>build-native</id>
+                                <goals>
+                                    <goal>compile-no-fork</goal>
+                                </goals>
+                                <phase>package</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Run mode of the native executable (combine with native). mcp is also the default. -->
+        <profile>
+            <id>mcp</id>
+            <properties>
+                <skoda.native.run-mode>mcp</skoda.native.run-mode>
+                <skoda.native.image-name>skoda-mcp</skoda.native.image-name>
+            </properties>
+        </profile>
+        <profile>
+            <id>api</id>
+            <properties>
+                <skoda.native.run-mode>api</skoda.native.run-mode>
+                <skoda.native.image-name>skoda-api</skoda.native.image-name>
+            </properties>
+        </profile>
+    </profiles>
+</project>

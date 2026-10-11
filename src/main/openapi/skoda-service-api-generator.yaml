@@ -1,0 +1,14 @@
+# openapi-generator configuration file for the skoda-service-api execution in pom.xml.
+# Only holds what the Maven plugin cannot express: user-defined templates. Everything else
+# (generator, packages, configOptions) stays in pom.xml.
+#
+# mcpTools.mustache (in <templateDirectory>, src/main/openapi/templates/mcp) is rendered once
+# per tag like the built-in api.mustache, so the same run that generates the REST interfaces
+# also generates the MCP tools: com.gd.skoda.mcp.generated.<Tag>ApiMcpTools.
+# "folder" is relative to the generator output directory and must match the package declared
+# in the template.
+files:
+  mcpTools.mustache:
+    templateType: API
+    destinationFilename: McpTools.java
+    folder: src/main/java/com/gd/skoda/mcp/generated

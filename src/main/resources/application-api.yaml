@@ -1,0 +1,43 @@
+# REST API server. /api/** has no authentication of its own: expose port 8080 only on
+# localhost or a trusted network.
+spring:
+  main:
+    web-application-type: servlet
+  mvc:
+    # RFC 9457 problem details for Spring MVC's own errors (ApiExceptionHandler takes this role)
+    problemdetails:
+      enabled: true
+  threads:
+    virtual:
+      enabled: true
+  ai:
+    mcp:
+      server:
+        enabled: false
+        stdio: false
+
+server:
+  port: 8080
+  mime-mappings:
+    yaml: application/yaml
+
+# Swagger UI shows OUR contract (copied to static/ at build time), not one derived from the
+# controllers, so the docs are exactly what REST and MCP are generated from.
+# springdoc's UI only activates together with its api-docs core, so api-docs stays enabled but
+# documents nothing (all paths excluded); /v3/api-docs is not the contract.
+springdoc:
+  api-docs:
+    enabled: true
+  paths-to-exclude: /**
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    url: /skoda-service-api.yaml
+
+management:
+  server:
+    port: 8081
+  endpoints:
+    web:
+      exposure:
+        include: health

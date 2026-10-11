@@ -1,0 +1,32 @@
+# Only pom.xml, the Maven wrapper and src/ are needed to build the image.
+
+# Build output and local secrets
+target/
+.env
+*.env
+*.log
+
+# VCS, CI, docs, scripts
+.git/
+.github/
+docs/
+scripts/
+README.md
+Dockerfile
+.dockerignore
+
+# IDE / OS
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+.apt_generated/
+bin/
+out/
+.DS_Store
+Thumbs.db

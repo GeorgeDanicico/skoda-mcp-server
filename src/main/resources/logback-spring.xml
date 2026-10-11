@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!-- mcp: STDOUT carries the MCP stdio protocol, so console logging goes to STDERR. -->
+    <springProfile name="mcp">
+        <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
+            <target>System.err</target>
+            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                <level>${CONSOLE_LOG_THRESHOLD}</level>
+            </filter>
+            <encoder>
+                <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+                <charset>${CONSOLE_LOG_CHARSET}</charset>
+            </encoder>
+        </appender>
+        <root level="INFO">
+            <appender-ref ref="STDERR"/>
+        </root>
+    </springProfile>
+
+    <!-- api and everything else: Boot's default console logging on STDOUT. -->
+    <springProfile name="!mcp">
+        <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+</configuration>

@@ -1,0 +1,66 @@
+{
+  "vehicle": {
+    "vin": "TMBJJ7NE8L0123456",
+    "name": "Family Octavia",
+    "licensePlate": "B 123 XYZ",
+    "renderUrl": "https://ip-modcwp.azureedge.net/renders/octavia-combi/exterior/main.png",
+    "status": {
+      "overall": {
+        "doorsLocked": "YES",
+        "locked": "YES",
+        "doors": "CLOSED",
+        "windows": "CLOSED",
+        "lights": "OFF",
+        "reliableLockStatus": "LOCKED"
+      },
+      "detail": {
+        "sunroof": "UNSUPPORTED",
+        "trunk": "CLOSED",
+        "bonnet": "CLOSED"
+      },
+      "carCapturedTimestamp": "2026-10-11T07:58:12Z"
+    },
+    "fuelStatus": {
+      "carType": "GASOLINE",
+      "totalRangeInKm": 612,
+      "primaryEngineRange": {
+        "engineType": "GASOLINE",
+        "currentFuelLevelInPercent": 74,
+        "remainingRangeInKm": 612
+      },
+      "carCapturedTimestamp": "2026-10-11T07:58:12Z"
+    },
+    "odometer": {
+      "mileageInKm": 48213,
+      "carCapturedTimestamp": "2026-10-11T07:58:12Z"
+    },
+    "parkingPosition": {
+      "state": "PARKED",
+      "gpsCoordinates": {
+        "latitude": 44.4361414,
+        "longitude": 26.1027202
+      },
+      "formattedAddress": "Strada Lipscani 12, 030031 Bucharest, Romania"
+    },
+    "airConditioning": {
+      "state": "OFF",
+      "targetTemperature": {
+        "value": 21.5,
+        "unit": "CELSIUS"
+      },
+      "airConditioningWithoutExternalPower": true,
+      "airConditioningAtUnlock": false,
+      "windowHeating": {
+        "enabled": true,
+        "front": "OFF",
+        "rear": "OFF"
+      },
+      "carCapturedTimestamp": "2026-10-11T07:58:10Z"
+    },
+    "operations": [
+      { "name": "startAirConditioning" },
+      { "name": "stopAirConditioning" }
+    ]
+  },
+  "errors": []
+}

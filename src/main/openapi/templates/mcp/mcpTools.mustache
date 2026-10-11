@@ -1,0 +1,91 @@
+{{!
+  MCP tools generated from skoda-service-api.yaml (user-defined API template, see
+  skoda-service-api-generator.yaml). Rendered once per tag; one @McpTool method per operation
+  that is not marked x-mcp-exclude: true.
+
+  * Tool name           x-mcp-name
+  * Tool description    summary + description. Use triple braces: the generator already escaped
+                        the text for a Java string literal (newlines -> spaces, " and \ escaped);
+                        double braces would additionally HTML-escape it.
+  * Hints               x-mcp-read-only: true -> readOnly, not destructive, idempotent.
+                        Otherwise the conservative MCP defaults (destructive, not idempotent).
+  * Body                delegates to VehicleApiFacade#<operationId> (same name and signature) through
+                        McpToolErrors, which turns failures into tool errors the model can act on.
+  * Output              generateOutputSchema: the 200 response DTO becomes the tool's output schema.
+
+  The package below must match the "folder" of this template in skoda-service-api-generator.yaml.
+}}
+package com.gd.skoda.mcp.generated;
+
+{{#imports}}
+import {{import}};
+{{/imports}}
+import com.gd.skoda.api.VehicleApiFacade;
+import com.gd.skoda.mcp.ConditionalOnMcpServer;
+import com.gd.skoda.mcp.McpToolErrors;
+import jakarta.annotation.Generated;
+import java.util.List;
+import java.util.Map;
+import org.springframework.ai.mcp.annotation.McpTool;
+import org.springframework.ai.mcp.annotation.McpToolParam;
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
+import org.springframework.stereotype.Component;
+
+/**
+ * MCP tools for the {{classname}} operations of skoda-service-api.yaml.
+ *
+ * <p>GENERATED from src/main/openapi/templates/mcp/mcpTools.mustache - do not edit. Change the
+ * contract (summary, description, x-mcp-* extensions) or the template instead.
+ */
+@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", comments = "mcpTools.mustache")
+@Component
+@ConditionalOnMcpServer
+public class {{classname}}McpTools {
+
+    private final VehicleApiFacade facade;
+    private final McpToolErrors errors;
+
+    public {{classname}}McpTools(VehicleApiFacade facade, McpToolErrors errors) {
+        this.facade = facade;
+        this.errors = errors;
+    }
+{{#operations}}
+{{#operation}}
+{{^vendorExtensions.x-mcp-exclude}}
+
+    /**
+     * Tool {{vendorExtensions.x-mcp-name}}: operation {{operationId}} ({{httpMethod}} {{path}}).
+     */
+    @McpTool(
+            name = "{{vendorExtensions.x-mcp-name}}",
+            description = "{{#lambda.trim}}{{{summary}}} {{{notes}}}{{/lambda.trim}}",
+            generateOutputSchema = {{#returnType}}true{{/returnType}}{{^returnType}}false{{/returnType}},
+            annotations = @McpTool.McpAnnotations(
+{{#vendorExtensions.x-mcp-read-only}}
+                    readOnlyHint = true,
+                    destructiveHint = false,
+                    idempotentHint = true,
+{{/vendorExtensions.x-mcp-read-only}}
+{{^vendorExtensions.x-mcp-read-only}}
+                    readOnlyHint = false,
+                    destructiveHint = true,
+                    idempotentHint = false,
+{{/vendorExtensions.x-mcp-read-only}}
+                    openWorldHint = true))
+{{#returnType}}
+    @RegisterReflectionForBinding({{{returnBaseType}}}.class)
+    public {{{returnType}}} {{operationId}}({{#allParams}}
+            @McpToolParam(description = "{{{description}}}", required = {{required}}) {{{dataType}}} {{paramName}}{{^-last}},{{/-last}}{{/allParams}}) {
+        return errors.call("{{vendorExtensions.x-mcp-name}}", () -> facade.{{operationId}}({{#allParams}}{{paramName}}{{^-last}}, {{/-last}}{{/allParams}}));
+    }
+{{/returnType}}
+{{^returnType}}
+    public void {{operationId}}({{#allParams}}
+            @McpToolParam(description = "{{{description}}}", required = {{required}}) {{{dataType}}} {{paramName}}{{^-last}},{{/-last}}{{/allParams}}) {
+        errors.run("{{vendorExtensions.x-mcp-name}}", () -> facade.{{operationId}}({{#allParams}}{{paramName}}{{^-last}}, {{/-last}}{{/allParams}}));
+    }
+{{/returnType}}
+{{/vendorExtensions.x-mcp-exclude}}
+{{/operation}}
+{{/operations}}
+}
